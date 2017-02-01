@@ -55,29 +55,38 @@ class MainHandler(webapp2.RequestHandler):
         # now we have to validate these values and return an error if not valid
 
         username = self.request.get('username')
-        if (not username) or (username.strip() == ""):
+        if (" " in username) or (not username) or (username.strip() == ""):
             error1 = "That's not a valid username."
-            # self.redirect("/?error=" + error)
+        else:
+            error1 = ""
 
         password = self.request.get('password')
-        if (not password) or (password.strip() == ""):
+        if (" " in password) or (not password) or (password.strip() == ""):
             error2 = "That's not a valid password."
-            # self.redirect("/?error=" + error)
+        else:
+            error2 = ""
 
         verifypw = self.request.get('verifypw')
         if password != verifypw:
             error3 = "Passwords don't match."
+        else:
+            error3 = ""
 
         email = self.request.get('email')
 
+        if (error1 == "") and (error2 == "") and (error3 == ""):
+            self.redirect("/welcome")
+        else:
+            content = build_page()
+            self.response.write(content + error1 + error2 + error3)
 
-
-
-
-        content = build_page()
-        self.response.write(content + username)
-
+class WelcomeHandler(webapp2.RequestHandler):
+    def get(self):
+        username = self.request.get('username')
+        welcome_greeting = "<h2>Welcome, " + username
+        self.response.write(welcome_greeting)
 
 app = webapp2.WSGIApplication([
-    ('/', MainHandler)
+    ('/', MainHandler),
+    ('/welcome', WelcomeHandler)
 ], debug=True)
