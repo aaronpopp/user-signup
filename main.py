@@ -15,71 +15,69 @@
 # limitations under the License.
 #
 import webapp2
-import cgi
 
-def build_page():
-    username_label = "<label>Username:</label>"
-    username_input = "<input type='text' name='username'/>"
+#writes the basic form
+form = """
+<form method = 'post'>
+    <h2>Signup</h2>
+    <label>Username: <input type='text' name='username'> </label>
+    <div style "color: red"> %(unerror)s </div>
+    <br>
+    <label>Password: <input type='password' name='password'</label>
+    <div style "color: red"> %(pwerror)s </div>
+    <br>
+    <label>Verify password: <input type='password' name='verifypw'></label>
+    <div style "color: red"> %(vperror)s </div>
+    <br>
+    <label>Email (optional): <input type='text' name='email'></label>
+    <br>
+    <input type = 'submit'>
+</form>
+"""
+# checks to see if user typed something without spaces
+def check_username(username):
+    if username and (" " not in username) and (username.strip() != ""):
+        return username
 
-    password_label = "<label>Password:</label>"
-    password_input = "<input type='password' name='password'/>"
+# checks to see if user typed something without spaces
+def check_password(password):
+    if password and (" " not in password) and (password.strip() != ""):
+        return password
 
-    verifypw_label = "<label>Verify password:</label>"
-    verifypw_input = "<input type='password' name='verifypw'/>"
+# checks to see if password and verifypw match
+def check_verifypw(password, verifypw):
+    if password == verifypw:
+        return verifypw
 
-    email_label = "<label>Email (optional):</label>"
-    email_input = "<input type='text' name='email'/>"
-
-    submit = "<input type = 'submit'/>"
-
-    form = ("<form method = 'post'>" +
-            username_label + username_input + "<br>" +
-            password_label + password_input + "<br>" +
-            verifypw_label + verifypw_input + "<br>" +
-            email_label + email_input + "<br>" +
-            submit + "</form>")
-
-    header = "<h2>Signup</h2>"
-
-    return header + form
+# TODO - you still need to figure out valid email function and incorporate it
 
 
 class MainHandler(webapp2.RequestHandler):
+# write_form function takes 3 variables, defaults set to empty strings
+    def write_form(self, unerror="", pwerror="", vperror=""):
+        self.response.out.write(form % {"unerror": unerror, "pwerror": pwerror, "vperror": vperror})
 
     def get(self):
-        content = build_page()
-        self.response.write(content)
+        self.write_form()
 
+# takes what the user submitted and runs it through the validity functions
     def post(self):
-        # we are filling in these variables with what the user submitted
-        # now we have to validate these values and return an error if not valid
+        good_username = check_username(self.request.get('username'))
+        good_password = check_password(self.request.get('password'))
+        good_verifypw = check_verifypw(self.request.get('password'),self.request.get('verifypw'))
 
-        username = self.request.get('username')
-        if (" " in username) or (not username) or (username.strip() == ""):
-            error1 = "That's not a valid username."
+# WILL THIS WORK? for every one that's not good, we change the variable to house the error message
+        if not good_username:
+            unerror = "Invalid Username"
+        elif not good_password:
+            pwerror = "Invalid Password"
+        elif not good_verifypw:
+            vperror = "Passwords Do Not Match"
+            self.write_form(unerror, pwerror, vperror)
         else:
-            error1 = ""
-
-        password = self.request.get('password')
-        if (" " in password) or (not password) or (password.strip() == ""):
-            error2 = "That's not a valid password."
-        else:
-            error2 = ""
-
-        verifypw = self.request.get('verifypw')
-        if password != verifypw:
-            error3 = "Passwords don't match."
-        else:
-            error3 = ""
-
-        email = self.request.get('email')
-
-        if (error1 == "") and (error2 == "") and (error3 == ""):
             self.redirect("/welcome")
-        else:
-            content = build_page()
-            self.response.write(content + error1 + error2 + error3)
 
+# need to put the username in the URL somehow
 class WelcomeHandler(webapp2.RequestHandler):
     def get(self):
         username = self.request.get('username')
