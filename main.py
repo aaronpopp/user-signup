@@ -15,73 +15,103 @@
 # limitations under the License.
 #
 import webapp2
+import re
+
 
 #writes the basic form
 form = """
 <form method = 'post'>
     <h2>Signup</h2>
-    <label>Username: <input type='text' name='username'> </label>
-    <div style "color: red"> %(unerror)s </div>
+    <label>Username: </label>
+    <input type='text' name='username' value='%(username)s'>
+    <label style="color: red"> %(unerror)s </label>
     <br>
-    <label>Password: <input type='password' name='password'</label>
-    <div style "color: red"> %(pwerror)s </div>
+    <label>Password: </label>
+    <input type='password' name='password'></label>
+    <label style="color: red"> %(pwerror)s </label>
     <br>
-    <label>Verify password: <input type='password' name='verifypw'></label>
-    <div style "color: red"> %(vperror)s </div>
+    <label>Verify password: </label>
+    <input type='password' name='verifypw'>
+    <label style="color: red"> %(vperror)s </label>
     <br>
-    <label>Email (optional): <input type='text' name='email'></label>
+    <label>Email (optional): </label>
+    <input type='text' name='email' value='%(email)s'>
+    <label style="color: red"> %(emailerror)s </label>
     <br>
     <input type = 'submit'>
 </form>
 """
-# checks to see if user typed something without spaces
-def check_username(username):
-    if username and (" " not in username) and (username.strip() != ""):
-        return username
-
-# checks to see if user typed something without spaces
-def check_password(password):
-    if password and (" " not in password) and (password.strip() != ""):
-        return password
-
-# checks to see if password and verifypw match
-def check_verifypw(password, verifypw):
-    if password == verifypw:
-        return verifypw
-
-# TODO - you still need to figure out valid email function and incorporate it
-
 
 class MainHandler(webapp2.RequestHandler):
-# write_form function takes 3 variables, defaults set to empty strings
-    def write_form(self, unerror="", pwerror="", vperror=""):
-        self.response.out.write(form % {"unerror": unerror, "pwerror": pwerror, "vperror": vperror})
 
+# write_form function takes variables, defaults set to empty strings
+    def write_form(self, username="", unerror="", pwerror="", vperror="", email="", emailerror=""):
+        values = {
+            'username': username,
+            'unerror': unerror,
+            'pwerror': pwerror,
+            'vperror': vperror,
+            'email': email,
+            'emailerror': emailerror
+            }
+        response = form % values
+        self.response.write(response)
+
+# these four functions check user input to confirm that it is valid
+    def check_username(self, username):
+        return re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
+
+    def check_password(self, password):
+        return re.compile(r"^.{3,20}$")
+
+    def check_verifypw(self, password, verifypw):
+        if password == verifypw:
+            return verifypw
+
+    def check_email(self, email):
+        return re.compile(r"^[\S]+@[\S]+.[\S]+$")
+
+# This is your get function - writes a blank form when page is loaded
     def get(self):
         self.write_form()
 
-# takes what the user submitted and runs it through the validity functions
+# # This is your post function - it takes what the user submitted...
     def post(self):
-        good_username = check_username(self.request.get('username'))
-        good_password = check_password(self.request.get('password'))
-        good_verifypw = check_verifypw(self.request.get('password'),self.request.get('verifypw'))
+        username = self.request.get('username')
+        password = self.request.get('password')
+        verifypw = self.request.get('verifypw')
+        email = self.request.get('email')
+# ...and runs it through the validity functions
+        good_username = self.check_username(username)
+        good_password = self.check_password(password)
+        good_verifypw = self.check_verifypw(password, verifypw)
+        good_email = self.check_email(email)
 
-# WILL THIS WORK? for every one that's not good, we change the variable to house the error message
-        if not good_username:
-            unerror = "Invalid Username"
-        elif not good_password:
-            pwerror = "Invalid Password"
-        elif not good_verifypw:
-            vperror = "Passwords Do Not Match"
-            self.write_form(unerror, pwerror, vperror)
+# if the user has submitted good data, we redirect them to the welcom page
+        if good_username and good_password and good_verifypw and good_email:
+            self.redirect("/welcome?username=%s" % username)
+
+# if not good data, we fill up our error strings to substitute back into the form...
         else:
-            self.redirect("/welcome")
+            if not good_username:
+                unerror = "Invalid Username"
 
-# need to put the username in the URL somehow
+            elif not good_password:
+                pwerror = "Invalid Password"
+
+            elif not good_verifypw:
+                vperror = "Passwords Do Not Match"
+
+            elif not good_email:
+                emailerror = "Invalid E-mail Address"
+# ...and re-write the form with the error strings
+            self.write_form(unerror=unerror, pwerror=pwerror, vperror=vperror, emailerror=emailerror)
+
+
 class WelcomeHandler(webapp2.RequestHandler):
     def get(self):
         username = self.request.get('username')
-        welcome_greeting = "<h2>Welcome, " + username
+        welcome_greeting = "<h2>Welcome, %s!</h2>" % username
         self.response.write(welcome_greeting)
 
 app = webapp2.WSGIApplication([
