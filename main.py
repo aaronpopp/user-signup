@@ -95,7 +95,7 @@ class MainHandler(webapp2.RequestHandler):
         good_email = valid_email(email)
 
 # if the user has submitted good data, we redirect them to the welcome page
-        if good_username and good_password and good_verifypw and good_email:
+        if (good_username and good_password and good_verifypw) and (good_email or not email):
             self.redirect("/welcome?username=%s" % username)
 
 # if not good data, we fill up our error strings to substitute back into the form...
